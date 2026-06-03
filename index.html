@@ -195,6 +195,7 @@
     <div class="aba-toggle">
       <button id="toggle-ali" class="on" onclick="setAba('Alimentação')">🍽 Alimentação</button>
       <button id="toggle-beb" onclick="setAba('Bebidas')">🍹 Bebidas</button>
+      <button id="toggle-out" onclick="setAba('Outros')">📦 Outros</button>
     </div>
     <div class="form-row">
       <div class="field"><label>Item</label><input class="wide" id="inp-nome" placeholder="ex: Cerveja"/></div>
@@ -214,6 +215,7 @@
   <div class="aba-toggle">
     <button id="ctoggle-ali" class="on" onclick="setCompraAba('Alimentação')">🍽 Alimentação</button>
     <button id="ctoggle-beb" onclick="setCompraAba('Bebidas')">🍹 Bebidas</button>
+    <button id="ctoggle-out" onclick="setCompraAba('Outros')">📦 Outros</button>
   </div>
   <div class="card" id="compras-list"></div>
 </div>
@@ -380,6 +382,7 @@ function setAba(aba) {
   currentAba = aba;
   document.getElementById('toggle-ali').classList.toggle('on', aba==='Alimentação');
   document.getElementById('toggle-beb').classList.toggle('on', aba==='Bebidas');
+  document.getElementById('toggle-out').classList.toggle('on', aba==='Outros');
   renderItens();
 }
 
@@ -387,6 +390,7 @@ function setCompraAba(aba) {
   compraAba = aba;
   document.getElementById('ctoggle-ali').classList.toggle('on', aba==='Alimentação');
   document.getElementById('ctoggle-beb').classList.toggle('on', aba==='Bebidas');
+  document.getElementById('ctoggle-out').classList.toggle('on', aba==='Outros');
   renderCompras();
 }
 
