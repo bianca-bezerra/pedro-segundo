@@ -646,6 +646,19 @@ function renderExtrato() {
   const el = document.getElementById('extrato-list');
   if (!state.itens.length) { el.innerHTML='<div class="empty">Cadastre itens para ver o extrato.</div>'; return; }
 
+  // Restaura blocos abertos após re-render
+  const restoreOpen = () => {
+    openExtratos.forEach(nome => {
+      const headers = document.querySelectorAll('.extrato-header');
+      headers.forEach(h => {
+        if (h.querySelector('.nome') && h.querySelector('.nome').textContent.trim() === nome) {
+          h.nextElementSibling.classList.add('open');
+          h.querySelector('.chevron').classList.add('open');
+        }
+      });
+    });
+  };
+
   el.innerHTML = extrato.map(e => {
     const pago = state.pagamentos[e.pessoa] || {};
     return `
@@ -690,6 +703,7 @@ function renderExtrato() {
       </div>
     </div>`;
   }).join('');
+  restoreOpen();
 }
 
 function toggleExtrato(header) {
@@ -697,9 +711,14 @@ function toggleExtrato(header) {
   header.querySelector('.chevron').classList.toggle('open');
 }
 
+let openExtratos = [];
+
 function togglePago(pessoa, itemId) {
   if (!state.pagamentos[pessoa]) state.pagamentos[pessoa] = {};
   state.pagamentos[pessoa][itemId] = !state.pagamentos[pessoa][itemId];
+  // Guarda quais blocos estão abertos antes de salvar (o Firebase vai re-renderizar)
+  openExtratos = [...document.querySelectorAll('.extrato-body.open')]
+    .map(el => el.closest('.extrato-pessoa').querySelector('.nome').textContent.trim());
   save();
 }
 
