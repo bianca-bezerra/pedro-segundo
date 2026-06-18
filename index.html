@@ -160,21 +160,25 @@
   .drawer-header{padding:1.25rem 1.25rem .75rem;border-bottom:1px solid var(--border);}
   .drawer-brand{font-family:var(--mono);font-size:13px;color:var(--accent);margin-bottom:.25rem;}
   .drawer-sync{font-size:11px;color:var(--muted);}
-  .drawer-nav{padding:.75rem 0;flex:1;display:flex;flex-direction:column;}
+  .drawer-nav{padding:.5rem 0;flex:1;display:flex;flex-direction:column;gap:2px;}
   .drawer-btn{display:flex;align-items:center;gap:.875rem;width:100%;background:none;border:none;
     color:var(--muted);font-family:var(--font);font-size:15px;padding:.75rem 1.25rem;
     cursor:pointer;transition:all .15s;text-align:left;}
   .drawer-btn:hover{background:var(--surface2);color:var(--text);}
   .drawer-btn.active{color:var(--accent);background:rgba(200,241,53,.08);}
   .drawer-btn svg{flex-shrink:0;}
-  .hamburger{background:none;border:none;color:var(--text);cursor:pointer;padding:6px;
-    display:flex;align-items:center;justify-content:center;border-radius:6px;}
+  .hamburger{display:none;background:none;border:none;color:var(--text);cursor:pointer;padding:6px;
+    align-items:center;justify-content:center;border-radius:6px;}
   .hamburger:hover{background:var(--surface2);}
+  .drawer,.drawer-overlay{display:none !important;}
 
   @media(max-width:640px){
     nav .nav-tabs{display:none;}
     nav .nav-brand{display:none;}
     .bottom-nav{display:none !important;}
+    .hamburger{display:flex !important;}
+    .drawer,.drawer-overlay{display:block !important;}
+    .drawer{display:flex !important;}
     .page{padding:1rem;padding-bottom:1.5rem;}
     h2{font-size:18px;margin-bottom:1rem;}
     .form-row{flex-direction:column;gap:.5rem;}
