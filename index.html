@@ -631,8 +631,9 @@ function selectAllPessoas(val) {
   updateCount();
 }
 
-function savePessoas() {
+function _savePessoas() {
   const it = state.itens.find(i => i.id === modalItemId);
+  if (!it) return;
   it.quemConsome = [...document.querySelectorAll('#modal-pessoas-grid input:checked')].map(c => c.value);
   save();
   closeModal('modal-pessoas');
@@ -904,9 +905,7 @@ function openBulkPessoas() {
   document.getElementById('modal-pessoas').classList.add('open');
 }
 
-// Intercepta savePessoas pra suportar bulk
-const _origSavePessoas = savePessoas;
-savePessoas = function() {
+function savePessoas() {
   if (modalItemId === '__bulk__') {
     const pessoas = [...document.querySelectorAll('#modal-pessoas-grid input:checked')].map(c => c.value);
     state.itens.filter(i => selectedIds.has(i.id)).forEach(i => { i.quemConsome = pessoas; });
@@ -914,8 +913,8 @@ savePessoas = function() {
     closeModal('modal-pessoas');
     return;
   }
-  _origSavePessoas();
-};
+  _savePessoas();
+}
 
 // Listeners dos selects de bulk
 document.addEventListener('change', function(e) {
