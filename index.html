@@ -140,6 +140,16 @@
   .sel-check{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;}
   .bulk-select-col{width:36px;}
 
+  .form-toggle-btn{display:none;}
+  @media(max-width:640px){
+    .form-toggle-btn{display:flex;align-items:center;justify-content:center;gap:8px;
+      width:100%;padding:10px;background:var(--surface);border:1px solid var(--border);
+      border-radius:var(--radius);cursor:pointer;font-size:14px;font-weight:500;
+      color:var(--accent);margin-bottom:.75rem;transition:all .15s;}
+    .form-toggle-btn:hover{background:var(--surface2);}
+    .form-collapsible{display:none;}
+    .form-collapsible.open{display:block;}
+  }
   @media(max-width:640px){
     nav{padding:0 1rem;}
     nav .nav-tabs{display:none;}
@@ -216,13 +226,19 @@
       <button id="toggle-beb" onclick="setAba('Bebidas')">Bebidas</button>
       <button id="toggle-out" onclick="setAba('Outros')">Outros</button>
     </div>
-    <div class="form-row">
-      <div class="field"><label>Item</label><input class="wide" id="inp-nome" placeholder="ex: Cerveja"/></div>
-      <div class="field"><label>Qtd</label><input type="number" id="inp-qtd" placeholder="24" min="0" step="any"/></div>
-      <div class="field"><label>Und</label><input id="inp-und" placeholder="lata" style="width:80px"/></div>
-      <div class="field"><label>Preço unit. (R$)</label><input type="number" id="inp-preco" placeholder="2.70" min="0" step="0.01"/></div>
-      <div class="field"><label>Quem pagou</label><select id="inp-pagou"><option value="">— ninguém ainda —</option></select></div>
-      <button class="btn" onclick="addItem()">+ Adicionar</button>
+    <button class="form-toggle-btn" id="form-toggle" onclick="toggleForm()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Adicionar item
+    </button>
+    <div class="form-collapsible" id="form-collapsible">
+      <div class="form-row">
+        <div class="field"><label>Item</label><input class="wide" id="inp-nome" placeholder="ex: Cerveja"/></div>
+        <div class="field"><label>Qtd</label><input type="number" id="inp-qtd" placeholder="24" min="0" step="any"/></div>
+        <div class="field"><label>Und</label><input id="inp-und" placeholder="lata" style="width:80px"/></div>
+        <div class="field"><label>Preço unit. (R$)</label><input type="number" id="inp-preco" placeholder="2.70" min="0" step="0.01"/></div>
+        <div class="field"><label>Quem pagou</label><select id="inp-pagou"><option value="">— ninguém ainda —</option></select></div>
+        <button class="btn" onclick="addItem()">+ Adicionar</button>
+      </div>
     </div>
   </div>
   <!-- Barra de ações em lote -->
@@ -345,24 +361,31 @@ try {
   firebase.initializeApp(firebaseConfig);
   db = firebase.database();
 
-  let lastSnapshot = null;
-  let isSaving = false;
+  let localSaveTs = 0; // timestamp do último save local
 
   db.ref('viagem').on('value', (snap) => {
-    const raw = JSON.stringify(snap.val());
-    // Se foi a gente mesmo que salvou, ignora o echo do Firebase
-    if (isSaving) { isSaving = false; setSyncStatus('ok','● online'); return; }
-    if (raw === lastSnapshot) { setSyncStatus('ok','● online'); return; }
-    lastSnapshot = raw;
     const data = snap.val();
-    if (data) {
-      state.itens      = data.itens ? Object.values(data.itens) : [];
-      state.pagamentos = data.pagamentos || {};
-      nextId = state.itens.length ? Math.max(...state.itens.map(i => i.id)) + 1 : 1;
+    if (!data) { setSyncStatus('ok','● online'); return; }
+
+    const newItens = data.itens ? Object.values(data.itens) : [];
+    const newPags  = data.pagamentos || {};
+
+    // Se veio do nosso próprio save (menos de 3s), só atualiza state sem re-render
+    if (Date.now() - localSaveTs < 3000) {
+      state.itens      = newItens;
+      state.pagamentos = newPags;
+      nextId = newItens.length ? Math.max(...newItens.map(i => i.id)) + 1 : 1;
+      setSyncStatus('ok','● online');
+      return;
     }
-    setSyncStatus('ok', '● online');
+
+    // Veio de outra pessoa — atualiza e re-renderiza
+    state.itens      = newItens;
+    state.pagamentos = newPags;
+    nextId = newItens.length ? Math.max(...newItens.map(i => i.id)) + 1 : 1;
+    setSyncStatus('ok','● online');
     renderCurrentPage();
-  }, () => setSyncStatus('err', '✕ offline'));
+  }, () => setSyncStatus('err','✕ offline'));
 
 } catch(e) {
   setSyncStatus('err', '✕ sem firebase');
@@ -375,12 +398,12 @@ try {
 function save() {
   if (db) {
     setSyncStatus('loading', '⟳ salvando...');
-    isSaving = true;
+    localSaveTs = Date.now();
     const itensObj = {};
     state.itens.forEach(it => { itensObj[it.id] = it; });
     db.ref('viagem').set({ itens: itensObj, pagamentos: state.pagamentos || {} })
       .then(() => setSyncStatus('ok','● online'))
-      .catch(() => { isSaving = false; setSyncStatus('err','✕ erro ao salvar'); });
+      .catch(() => setSyncStatus('err','✕ erro ao salvar'));
   } else {
     localStorage.setItem('viagem-state', JSON.stringify(state));
   }
@@ -445,6 +468,16 @@ function setCompraAba(aba) {
 }
 
 // ── ADICIONAR ITEM ─────────────────────────────────────────────────────────
+function toggleForm() {
+  const col = document.getElementById('form-collapsible');
+  const btn = document.getElementById('form-toggle');
+  const open = col.classList.toggle('open');
+  btn.innerHTML = open
+    ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg> Fechar'
+    : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Adicionar item';
+  if (open) document.getElementById('inp-nome').focus();
+}
+
 function addItem() {
   const nome  = document.getElementById('inp-nome').value.trim();
   const qtd   = parseFloat(document.getElementById('inp-qtd').value)||0;
@@ -456,6 +489,13 @@ function addItem() {
   save();
   ['inp-nome','inp-qtd','inp-und','inp-preco'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('inp-pagou').value = '';
+  // Fecha o form no mobile após adicionar
+  const col = document.getElementById('form-collapsible');
+  const btn = document.getElementById('form-toggle');
+  if (col && col.classList.contains('open') && window.innerWidth <= 640) {
+    col.classList.remove('open');
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Adicionar item';
+  }
 }
 
 document.addEventListener('keydown', e => {
