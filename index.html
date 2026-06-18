@@ -124,6 +124,18 @@
   .item-card-total{font-family:var(--mono);font-size:14px;color:var(--accent2);}
   .item-card-pessoa{font-family:var(--mono);font-size:13px;color:var(--accent);}
 
+  /* seleção múltipla */
+  .bulk-bar{display:none;position:sticky;top:56px;z-index:90;background:var(--surface);
+    border-bottom:1px solid var(--accent);padding:.6rem 1rem;
+    align-items:center;gap:.75rem;flex-wrap:wrap;}
+  .bulk-bar.show{display:flex;}
+  .bulk-bar .bulk-info{font-size:13px;font-weight:500;color:var(--accent);flex:1;}
+  .item-card.selected,.desktop-table tr.selected td{background:rgba(200,241,53,.06)!important;}
+  .item-card.selected{border-color:var(--accent);}
+  .desktop-table tr.selected td{box-shadow:inset 3px 0 0 var(--accent);}
+  .sel-check{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;}
+  .bulk-select-col{width:36px;}
+
   @media(max-width:640px){
     nav{padding:0 1rem;}
     nav .nav-tabs{display:none;}
@@ -205,6 +217,22 @@
       <div class="field"><label>Quem pagou</label><select id="inp-pagou"><option value="">— ninguém ainda —</option></select></div>
       <button class="btn" onclick="addItem()">+ Adicionar</button>
     </div>
+  </div>
+  <!-- Barra de ações em lote -->
+  <div class="bulk-bar" id="bulk-bar">
+    <span class="bulk-info" id="bulk-info">0 selecionados</span>
+    <select id="bulk-aba" style="width:auto;font-size:12px;padding:5px 8px;">
+      <option value="">Mover para...</option>
+      <option value="Alimentação">🍽 Alimentação</option>
+      <option value="Bebidas">🍹 Bebidas</option>
+      <option value="Outros">📦 Outros</option>
+    </select>
+    <select id="bulk-pagou" style="width:auto;font-size:12px;padding:5px 8px;">
+      <option value="">Quem pagou...</option>
+    </select>
+    <button class="btn sm" onclick="openBulkPessoas()">👥 Quem consome</button>
+    <button class="btn danger sm" onclick="bulkDelete()">✕ Excluir</button>
+    <button class="btn ghost sm" onclick="clearSelection()">Cancelar</button>
   </div>
   <div id="itens-table"></div>
 </div>
@@ -358,6 +386,9 @@ function fillSelect(id) {
 }
 fillSelect('inp-pagou');
 fillSelect('edit-pagou');
+// bulk-pagou
+const bpSel = document.getElementById('bulk-pagou');
+PESSOAS.forEach(p => { const o=document.createElement('option'); o.value=p; o.textContent=p; bpSel.appendChild(o); });
 
 // ── NAVEGAÇÃO ──────────────────────────────────────────────────────────────
 function showPage(p, btn, isMobile) {
@@ -424,9 +455,10 @@ function renderItens() {
 
   // Cards mobile
   const mobileCards = itens.map(it => `
-    <div class="item-card">
+    <div class="item-card ${selectedIds.has(it.id)?'selected':''}" data-item-id="${it.id}">
       <div class="item-card-top">
-        <div>
+        <input type="checkbox" class="sel-check" ${selectedIds.has(it.id)?'checked':''} onchange="toggleSelect(${it.id},this.checked)" style="margin-right:6px;margin-top:2px;">
+        <div style="flex:1;">
           <div class="item-card-nome">${it.nome}</div>
           <div class="item-card-meta">
             ${it.qtd?`<span>${it.qtd}${it.und?' '+it.und:''}</span>`:''}
@@ -457,12 +489,14 @@ function renderItens() {
     <div class="card desktop-table" style="padding:0;overflow:hidden;">
     <table>
       <thead><tr>
+        <th class="bulk-select-col"><input type="checkbox" class="sel-check" id="sel-all" onchange="toggleSelectAll(this.checked)"></th>
         <th>Item</th><th>Qtd / Und</th><th>Preço unit.</th><th>Total</th>
         <th>Quem consome</th><th>Val/pessoa</th><th>Quem pagou</th><th></th>
       </tr></thead>
       <tbody>
       ${itens.map(it => `
-        <tr>
+        <tr class="${selectedIds.has(it.id)?'selected':''}" data-item-id="${it.id}">
+          <td><input type="checkbox" class="sel-check" ${selectedIds.has(it.id)?'checked':''} onchange="toggleSelect(${it.id},this.checked)"></td>
           <td style="font-weight:500">${it.nome}</td>
           <td style="font-family:var(--mono)">${it.qtd}${it.und?' '+it.und:''}</td>
           <td style="font-family:var(--mono)">${it.preco?fmt(it.preco):'—'}</td>
@@ -483,6 +517,7 @@ function renderItens() {
         </tr>`).join('')}
       </tbody>
       <tfoot><tr>
+        <td></td>
         <td colspan="3" style="color:var(--muted);font-size:12px;">${itens.length} item${itens.length>1?'s':''}</td>
         <td style="font-family:var(--mono);font-weight:600;color:var(--accent);">${fmt(total)}</td>
         <td colspan="4"></td>
@@ -505,6 +540,15 @@ function applyMobileView() {
   document.querySelectorAll('.desktop-table').forEach(el => el.style.display = isMobile ? 'none' : 'block');
 }
 window.addEventListener('resize', applyMobileView);
+
+function toggleSelectAll(checked) {
+  const itens = state.itens.filter(i => i.aba === currentAba);
+  itens.forEach(it => {
+    if (checked) selectedIds.add(it.id); else selectedIds.delete(it.id);
+  });
+  updateBulkBar();
+  renderItens();
+}
 
 function removeItem(id) {
   if (!confirm('Remover este item?')) return;
@@ -728,12 +772,12 @@ function renderGrupos(consumos, pago, pessoa) {
     grupos[credor].total += c.valor;
   });
 
+  // Usa data attributes em vez de onclick inline para evitar problemas com aspas
   return Object.entries(grupos).map(([credor, g]) => {
     const todosPagos = g.itens.every(c => pago[c.id]);
-    const ids = g.itens.map(c => c.id).join(',');
-    const credorLabel = credor !== '—'
-      ? 'Pagar a <strong>' + credor + '</strong>'
-      : 'Sem credor definido';
+    const credorLabel = credor !== '—' ? 'Pagar a <strong>' + credor + '</strong>' : 'Sem credor definido';
+    const totalColor  = todosPagos ? 'var(--success)' : 'var(--accent)';
+    const totalLabel  = (todosPagos ? '✓ ' : '') + fmt(g.total);
 
     const itensHtml = g.itens.map(c => {
       const cp = pago[c.id] ? 'pago' : '';
@@ -745,21 +789,17 @@ function renderGrupos(consumos, pago, pessoa) {
         + '</div>'
         + '<div style="display:flex;align-items:center;gap:.75rem;">'
         + '<span style="font-family:var(--mono);font-size:13px;">' + fmt(c.valor) + '</span>'
-        + '<button class="pago-btn ' + cp + '" onclick="togglePago(\u0027' + pessoa + '\u0027,' + c.id + ')">' + bt + '</button>'
+        + '<button class="pago-btn ' + cp + '" data-action="pago-item" data-pessoa="' + pessoa + '" data-id="' + c.id + '">' + bt + '</button>'
         + '</div></div>';
     }).join('');
 
     const marcarBtn = credor !== '—'
-      ? '<button class="pago-btn ' + (todosPagos ? 'pago' : '') + '" '
-        + 'onclick="event.stopPropagation();togglePagoGrupo(\u0027' + pessoa + '\u0027,[' + ids + '],' + todosPagos + ')">' 
+      ? '<button class="pago-btn ' + (todosPagos ? 'pago' : '') + '" data-action="pago-grupo" data-pessoa="' + pessoa + '" data-ids="' + g.itens.map(c=>c.id).join(',') + '" data-todos="' + todosPagos + '">'
         + (todosPagos ? '✓ tudo pago' : 'marcar tudo pago') + '</button>'
       : '';
 
-    const totalColor = todosPagos ? 'var(--success)' : 'var(--accent)';
-    const totalLabel = (todosPagos ? '✓ ' : '') + fmt(g.total);
-
     return '<div style="border-bottom:1px solid var(--border);">'
-      + '<div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.25rem;background:var(--surface2);cursor:pointer;" onclick="toggleGrupo(this)">'
+      + '<div class="grupo-header" style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.25rem;background:var(--surface2);cursor:pointer;">'
       + '<div style="display:flex;align-items:center;gap:.5rem;">'
       + '<span style="font-size:10px;color:var(--muted);" class="g-chevron">▶</span>'
       + '<span style="font-size:13px;font-weight:500;">' + credorLabel + '</span>'
@@ -782,6 +822,27 @@ function toggleGrupo(header) {
   chev.style.transform = open ? 'rotate(90deg)' : '';
 }
 
+// Event delegation para botões dentro do extrato (evita problemas com aspas no onclick)
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) {
+    // toggle grupo header
+    const gh = e.target.closest('.grupo-header');
+    if (gh) toggleGrupo(gh);
+    return;
+  }
+  const action = btn.dataset.action;
+  if (action === 'pago-item') {
+    e.stopPropagation();
+    togglePago(btn.dataset.pessoa, parseInt(btn.dataset.id));
+  } else if (action === 'pago-grupo') {
+    e.stopPropagation();
+    const ids = btn.dataset.ids.split(',').map(Number);
+    const todos = btn.dataset.todos === 'true';
+    togglePagoGrupo(btn.dataset.pessoa, ids, todos);
+  }
+});
+
 function togglePagoGrupo(pessoa, ids, todosPagos) {
   if (!state.pagamentos[pessoa]) state.pagamentos[pessoa] = {};
   ids.forEach(id => { state.pagamentos[pessoa][id] = !todosPagos; });
@@ -789,6 +850,80 @@ function togglePagoGrupo(pessoa, ids, todosPagos) {
     .map(el => el.closest('.extrato-pessoa').querySelector('.nome').textContent.trim());
   save();
 }
+
+// ── SELEÇÃO MÚLTIPLA ──────────────────────────────────────────────────────
+let selectedIds = new Set();
+
+function toggleSelect(id, checked) {
+  if (checked) selectedIds.add(id); else selectedIds.delete(id);
+  updateBulkBar();
+  // atualiza visual da linha/card
+  document.querySelectorAll('[data-item-id="' + id + '"]').forEach(el => {
+    el.classList.toggle('selected', checked);
+  });
+}
+
+function updateBulkBar() {
+  const bar  = document.getElementById('bulk-bar');
+  const info = document.getElementById('bulk-info');
+  const n = selectedIds.size;
+  bar.classList.toggle('show', n > 0);
+  info.textContent = n + ' selecionado' + (n !== 1 ? 's' : '');
+}
+
+function clearSelection() {
+  selectedIds.clear();
+  updateBulkBar();
+  renderItens();
+}
+
+function bulkDelete() {
+  if (!confirm('Excluir ' + selectedIds.size + ' itens?')) return;
+  state.itens = state.itens.filter(i => !selectedIds.has(i.id));
+  selectedIds.clear();
+  save();
+}
+
+function openBulkPessoas() {
+  // Reutiliza o modal de pessoas, mas salva em todos os selecionados
+  modalItemId = '__bulk__';
+  // pega interseção de quem consome dos selecionados
+  const selecionados = state.itens.filter(i => selectedIds.has(i.id));
+  const inter = selecionados.length
+    ? selecionados[0].quemConsome.filter(p => selecionados.every(i => i.quemConsome.includes(p)))
+    : [];
+  document.getElementById('modal-pessoas-title').textContent = 'Quem consome — ' + selectedIds.size + ' itens';
+  document.getElementById('search-pessoas').value = '';
+  renderChips(inter, '');
+  document.getElementById('modal-pessoas').classList.add('open');
+}
+
+// Intercepta savePessoas pra suportar bulk
+const _origSavePessoas = savePessoas;
+savePessoas = function() {
+  if (modalItemId === '__bulk__') {
+    const pessoas = [...document.querySelectorAll('#modal-pessoas-grid input:checked')].map(c => c.value);
+    state.itens.filter(i => selectedIds.has(i.id)).forEach(i => { i.quemConsome = pessoas; });
+    save();
+    closeModal('modal-pessoas');
+    return;
+  }
+  _origSavePessoas();
+};
+
+// Listeners dos selects de bulk
+document.addEventListener('change', function(e) {
+  if (e.target.id === 'bulk-aba' && e.target.value) {
+    state.itens.filter(i => selectedIds.has(i.id)).forEach(i => { i.aba = e.target.value; });
+    e.target.value = '';
+    save();
+  }
+  if (e.target.id === 'bulk-pagou' && e.target.value) {
+    state.itens.filter(i => selectedIds.has(i.id)).forEach(i => { i.quemPagou = e.target.value; });
+    e.target.value = '';
+    save();
+  }
+});
 
 // ── INIT ───────────────────────────────────────────────────────────────────
 renderItens();
