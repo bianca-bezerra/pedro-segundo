@@ -160,7 +160,7 @@
   .drawer-header{padding:1.25rem 1.25rem .75rem;border-bottom:1px solid var(--border);}
   .drawer-brand{font-family:var(--mono);font-size:13px;color:var(--accent);margin-bottom:.25rem;}
   .drawer-sync{font-size:11px;color:var(--muted);}
-  .drawer-nav{padding:.75rem 0;flex:1;}
+  .drawer-nav{padding:.75rem 0;flex:1;display:flex;flex-direction:column;}
   .drawer-btn{display:flex;align-items:center;gap:.875rem;width:100%;background:none;border:none;
     color:var(--muted);font-family:var(--font);font-size:15px;padding:.75rem 1.25rem;
     cursor:pointer;transition:all .15s;text-align:left;}
@@ -531,7 +531,7 @@ function renderItens() {
       <div class="item-card-top">
         <input type="checkbox" class="sel-check" ${selectedIds.has(it.id)?'checked':''} onchange="toggleSelect(${it.id},this.checked)" style="margin-right:6px;margin-top:2px;">
         <div style="flex:1;">
-          <div class="item-card-nome" style="${it.comprado?'text-decoration:line-through;color:var(--muted)':''}">${it.nome}</div>
+          <div class="item-card-nome">${it.nome}</div>
           <div class="item-card-meta">
             ${it.qtd?`<span>${it.qtd}${it.und?' '+it.und:''}</span>`:''}
             ${it.preco?`<span>${fmt(it.preco)}/un</span>`:''}
@@ -549,11 +549,6 @@ function renderItens() {
             ? `👥 ${it.quemConsome.length} pessoa${it.quemConsome.length>1?'s':''}`
             : 'todos (17)'}
         </button>
-        <div style="display:flex;align-items:center;gap:.5rem;">
-          <button onclick="toggleComprado(${it.id},${!it.comprado})" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:var(--mono);color:${it.comprado?'var(--success)':'var(--muted)'};transition:all .15s;">
-            ${it.comprado?'✓ comprado':'comprar'}
-          </button>
-        </div>
         <div class="item-card-values" style="border:none;padding:0;gap:1rem;">
           <span class="item-card-total">${it.preco?fmt(totalItem(it)):'—'}</span>
           ${it.preco?`<span class="item-card-pessoa">${fmt(valorPessoa(it))}/pessoa</span>`:''}
