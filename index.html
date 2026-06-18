@@ -132,7 +132,7 @@
   .bulk-bar .bulk-info{font-size:13px;font-weight:500;color:var(--accent);flex:1;}
   .item-card.selected,.desktop-table tr.selected td{background:rgba(200,241,53,.06)!important;}
   .item-card.selected{border-color:var(--accent);}
-  .desktop-table tr.selected td{box-shadow:inset 3px 0 0 var(--accent);}
+  
   .sel-check{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;}
   .bulk-select-col{width:36px;}
 
@@ -735,7 +735,7 @@ function renderExtrato() {
           ${e.falta<=.01
             ? '<span class="badge green">✓ quitado</span>'
             : `<span style="font-size:11px;color:var(--muted);">falta</span><span class="total-val">${fmt(e.falta)}</span>`}
-          <span class="chevron">▼</span>
+          <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
       </div>
       <div class="extrato-body">
@@ -806,7 +806,7 @@ function renderGrupos(consumos, pago, pessoa) {
     return '<div style="border-bottom:1px solid var(--border);">'
       + '<div class="grupo-header" style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.25rem;background:var(--surface2);cursor:pointer;">'
       + '<div style="display:flex;align-items:center;gap:.5rem;">'
-      + '<span style="font-size:10px;color:var(--muted);" class="g-chevron">▶</span>'
+      + '<svg class="g-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);transition:transform .2s;"><polyline points="9 18 15 12 9 6"/></svg>'
       + '<span style="font-size:13px;font-weight:500;">' + credorLabel + '</span>'
       + '<span style="font-size:11px;color:var(--muted);">' + g.itens.length + ' item' + (g.itens.length > 1 ? 's' : '') + '</span>'
       + '</div>'
