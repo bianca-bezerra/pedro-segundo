@@ -82,7 +82,7 @@
   .aba-toggle button{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:6px 16px;font-size:13px;font-family:var(--font);cursor:pointer;}
   .aba-toggle button.on{background:rgba(200,241,53,.1);border-color:var(--accent);color:var(--accent);}
   .empty{text-align:center;padding:3rem;color:var(--muted);font-size:14px;}
-  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;align-items:center;justify-content:center;}
   .modal-overlay.open{display:flex;}
   .modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;}
   .modal h3{color:var(--text);font-size:16px;font-weight:500;margin-bottom:1rem;}
@@ -105,7 +105,7 @@
   /* bottom nav mobile */
   .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:58px;
     background:var(--surface);border-top:1px solid var(--border);
-    z-index:100;justify-content:space-around;align-items:center;padding:0 .5rem;}
+    z-index:50;justify-content:space-around;align-items:center;padding:0 .5rem;}
   .bnav-btn{display:flex;flex-direction:column;align-items:center;gap:2px;
     background:none;border:none;color:var(--muted);font-family:var(--font);
     font-size:10px;padding:6px 16px;border-radius:8px;cursor:pointer;transition:color .15s;flex:1;}
@@ -593,7 +593,7 @@ function openPessoasModal(id) {
   const it = state.itens.find(i => i.id === id);
   document.getElementById('modal-pessoas-title').textContent = 'Quem vai consumir: ' + it.nome;
   document.getElementById('search-pessoas').value = '';
-  renderChips(it.quemConsome || [], '');
+  renderChips(Array.isArray(it.quemConsome) ? it.quemConsome : [], '');
   document.getElementById('modal-pessoas').classList.add('open');
 }
 
@@ -892,12 +892,12 @@ function bulkDelete() {
 }
 
 function openBulkPessoas() {
-  // Reutiliza o modal de pessoas, mas salva em todos os selecionados
   modalItemId = '__bulk__';
-  // pega interseção de quem consome dos selecionados
   const selecionados = state.itens.filter(i => selectedIds.has(i.id));
+  // garante que quemConsome é sempre array antes de filtrar
   const inter = selecionados.length
-    ? selecionados[0].quemConsome.filter(p => selecionados.every(i => i.quemConsome.includes(p)))
+    ? (selecionados[0].quemConsome || []).filter(p =>
+        selecionados.every(i => (i.quemConsome || []).includes(p)))
     : [];
   document.getElementById('modal-pessoas-title').textContent = 'Quem consome — ' + selectedIds.size + ' itens';
   document.getElementById('search-pessoas').value = '';
