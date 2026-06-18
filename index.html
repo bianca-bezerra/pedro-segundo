@@ -112,6 +112,7 @@
   .bnav-btn svg{margin-bottom:2px;}
   .bnav-btn.active{color:var(--accent);}
 
+  .mobile-cards{display:none;}
   /* card de item no mobile (substitui table) */
   .item-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;
     padding:.875rem;margin-bottom:.5rem;}
@@ -152,8 +153,8 @@
     .btn.sm{width:auto;}
 
     /* esconde table, mostra item-card */
-    .desktop-table{display:none;}
-    .mobile-cards{display:block;}
+    .desktop-table{display:none !important;}
+    .mobile-cards{display:block !important;}
 
     /* stats menor */
     .stats-grid{grid-template-columns:1fr 1fr;}
@@ -528,21 +529,11 @@ function renderItens() {
     </table></div>`;
 
   el.innerHTML = `
-    <div class="mobile-cards" style="display:none;">${mobileCards}
+    <div class="mobile-cards">${mobileCards}
       <div style="text-align:right;padding:.5rem 0;font-family:var(--mono);font-size:13px;color:var(--accent);">Total: ${fmt(total)}</div>
     </div>
     ${desktopTable}`;
-
-  // Aplica visibilidade de acordo com largura
-  applyMobileView();
 }
-
-function applyMobileView() {
-  const isMobile = window.innerWidth <= 640;
-  document.querySelectorAll('.mobile-cards').forEach(el => el.style.display = isMobile ? 'block' : 'none');
-  document.querySelectorAll('.desktop-table').forEach(el => el.style.display = isMobile ? 'none' : 'block');
-}
-window.addEventListener('resize', applyMobileView);
 
 function toggleSelectAll(checked) {
   const itens = state.itens.filter(i => i.aba === currentAba);
