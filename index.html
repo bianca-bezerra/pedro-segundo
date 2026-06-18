@@ -2,6 +2,9 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Viagem Pedro II</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -342,7 +345,15 @@ try {
   firebase.initializeApp(firebaseConfig);
   db = firebase.database();
 
+  let lastSnapshot = null;
+  let isSaving = false;
+
   db.ref('viagem').on('value', (snap) => {
+    const raw = JSON.stringify(snap.val());
+    // Se foi a gente mesmo que salvou, ignora o echo do Firebase
+    if (isSaving) { isSaving = false; setSyncStatus('ok','● online'); return; }
+    if (raw === lastSnapshot) { setSyncStatus('ok','● online'); return; }
+    lastSnapshot = raw;
     const data = snap.val();
     if (data) {
       state.itens      = data.itens ? Object.values(data.itens) : [];
@@ -364,11 +375,12 @@ try {
 function save() {
   if (db) {
     setSyncStatus('loading', '⟳ salvando...');
+    isSaving = true;
     const itensObj = {};
     state.itens.forEach(it => { itensObj[it.id] = it; });
     db.ref('viagem').set({ itens: itensObj, pagamentos: state.pagamentos || {} })
       .then(() => setSyncStatus('ok','● online'))
-      .catch(() => setSyncStatus('err','✕ erro ao salvar'));
+      .catch(() => { isSaving = false; setSyncStatus('err','✕ erro ao salvar'); });
   } else {
     localStorage.setItem('viagem-state', JSON.stringify(state));
   }
